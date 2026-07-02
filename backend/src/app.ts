@@ -2,8 +2,10 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
 import { config } from './config/env.js';
 import { errorHandler, rateLimiter } from './middleware/index.js';
+import { swaggerSpec } from './config/swagger.js';
 import routes from './routes/index.js';
 import { logger } from './utils/logger.js';
 
@@ -11,10 +13,12 @@ const app: Express = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: config.cors_origin,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: config.cors_origin,
+    credentials: true
+  })
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
@@ -24,6 +28,9 @@ app.use(rateLimiter);
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// Swagger API Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API Routes
 app.use('/api', routes);
