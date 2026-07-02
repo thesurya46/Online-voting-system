@@ -1,0 +1,190 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Model
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  firstName     String
+  lastName      String
+  password      String
+  avatar        String?
+  phone         String?
+  emailVerified Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  role          Role      @relation(fields: [roleId], references: [id])
+  roleId        String
+  elections     ElectionAdmin[]
+  votes         Vote[]
+  auditLogs     AuditLog[]
+  refreshTokens RefreshToken[]
+  voters        Voter[]
+
+  @@index([roleId])
+  @@index([email])
+}
+
+// Role Model
+model Role {
+  id        String   @id @default(cuid())
+  name      String   @unique // SUPER_ADMIN, ELECTION_ADMIN, VOTER
+  createdAt DateTime @default(now())
+
+  users User[]
+}
+
+// Election Model
+model Election {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  startDate     DateTime
+  endDate       DateTime
+  status        String    @default("DRAFT") // DRAFT, ACTIVE, COMPLETED, CANCELLED
+  isPublic      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  admin         ElectionAdmin @relation(fields: [adminId], references: [id])
+  adminId       String
+  positions     Position[]
+  votes         Vote[]
+  voters        Voter[]
+  auditLogs     AuditLog[]
+
+  @@index([adminId])
+  @@index([status])
+}
+
+// Election Admin Model
+model ElectionAdmin {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  elections   Election[]
+  createdAt   DateTime @default(now())
+
+  @@unique([userId])
+}
+
+// Position Model
+model Position {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  maxVotes    Int      @default(1) // Number of candidates voter can vote for
+  election    Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  electionId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  candidates  Candidate[]
+
+  @@unique([electionId, title])
+  @@index([electionId])
+}
+
+// Candidate Model
+model Candidate {
+  id          String   @id @default(cuid())
+  name        String
+  bio         String?
+  photo       String?
+  position    Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  positionId  String
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  votes       Vote[]
+
+  @@index([positionId])
+}
+
+// Vote Model
+model Vote {
+  id            String   @id @default(cuid())
+  voter         Voter    @relation(fields: [voterId], references: [id])
+  voterId       String
+  election      Election @relation(fields: [electionId], references: [id])
+  electionId    String
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  candidateId   String
+  position      Position @relation(fields: [positionId], references: [id])
+  positionId    String
+  encryptedVote String // Encrypted vote data
+  timestamp     DateTime @default(now())
+
+  @@unique([voterId, electionId, positionId])
+  @@index([voterId])
+  @@index([electionId])
+  @@index([candidateId])
+}
+
+// Voter Model
+model Voter {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  election     Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  electionId   String
+  hasVoted     Boolean  @default(false)
+  votedAt      DateTime?
+  votes        Vote[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, electionId])
+  @@index([electionId])
+  @@index([userId])
+}
+
+// Refresh Token Model
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Audit Log Model
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String
+  changes   String? // JSON string of changes
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  election  Election? @relation(fields: [electionId], references: [id], onDelete: SetNull)
+  electionId String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([electionId])
+  @@index([createdAt])
+}
