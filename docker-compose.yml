@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: voting_system_db
+    environment:
+      POSTGRES_USER: voting_user
+      POSTGRES_PASSWORD: voting_password
+      POSTGRES_DB: voting_system
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voting_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - voting_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: voting_system_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - voting_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: voting_system_backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://voting_user:voting_password@postgres:5432/voting_system
+      REDIS_URL: redis://redis:6379
+      PORT: 5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - voting_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: voting_system_frontend
+    environment:
+      VITE_API_URL: http://localhost:5000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - voting_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  voting_network:
+    driver: bridge
