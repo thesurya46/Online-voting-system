@@ -3,3 +3,7 @@ export { electionService } from './electionService.js';
 export { positionService } from './positionService.js';
 export { candidateService } from './candidateService.js';
 export { voteService } from './voteService.js';
+export { notificationService } from './notificationService.js';
+export { analyticsService } from './analyticsService.js';
+export { reportService } from './reportService.js';
+export { bulkImportService } from './bulkImportService.js';
