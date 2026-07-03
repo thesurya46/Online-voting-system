@@ -310,11 +310,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📧 Support
 
-For support, email support@votingsystem.com or open an issue on GitHub.
+For support, email work.suryasnata@gmail.com or open an issue on GitHub.
 
 ## 👥 Team
 
-- **Author**: Surya Dev
+- **Author**: Surya Snata Panigrahi
 - **Repository**: [Online-voting-system](https://github.com/thesurya46/Online-voting-system)
 
 ---
